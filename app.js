@@ -14,7 +14,7 @@ const app = express();
 
 app.use((req, res, next) => {
   const allowedOrigin =
-    process.env.NODE_ENV === "production" ? "https://three41-ucb0.onrender.com" : "http://localhost:8080";
+    process.env.NODE_ENV === "production" ? "https://three41-ucb0.onrender.com" : "http://localhost:5000";
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
