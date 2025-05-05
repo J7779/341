@@ -11,6 +11,17 @@ dotenv.config();
 
 const app = express();
 
+
+app.use((req, res, next) => {
+  const allowedOrigin =
+    process.env.NODE_ENV === "production" ? "https://three41-ucb0.onrender.com" : "http://localhost:8080";
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  next();
+});
+
 // Connect to MongoDB
 connectDB();
 
@@ -29,6 +40,8 @@ app.use("/api", contactRoutes);
 
 
 swaggerSetup(app);
+const host = process.env.HOST || "localhost";
+const port = process.env.PORT || 5000;
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+app.listen(port, () => console.log(`app connected to DB and listening on ${host}:${port}`));
