@@ -98,7 +98,6 @@ app.get("/", (req, res) => {
     <body>
         <h1>(╯°□°）╯︵ ┻━┻</h1>
         ${pageMessage}
-        <p>Welcome to the API.</p>
         <p><a href="${API_URL}/auth/google">Login with Google</a></p>
         <p><a href="${API_URL}/api-docs">API Documentation (Swagger)</a></p>
     </body>
