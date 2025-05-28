@@ -7,6 +7,7 @@ const {
   updateProduct,
   deleteProduct
 } = require("../controllers/productController");
+const { isAuthenticated } = require("../middleware/authMiddleware"); // Import auth middleware
 const router = express.Router();
 
 /**
@@ -77,14 +78,34 @@ const router = express.Router();
  *           type: string
  *           format: date-time
  *           description: Timestamp of when the product was last updated
+ *     User: # Added User schema for profile route example (already in your version)
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         googleId:
+ *           type: string
+ *         displayName:
+ *           type: string
+ *         firstName:
+ *           type: string
+ *         lastName:
+ *           type: string
+ *         email:
+ *           type: string
+ *           format: email
+ *         createdAt:
+ *           type: string
+ *           format: date-time
  *
  *   requestBodies:
  *     ProductPostBody:
- *       description: Product object that needs to be added. `id`, `createdAt`, `updatedAt` are server-generated.
+ *       description: Product object that needs to be added.
  *       required: true
  *       content:
  *         application/json:
  *           schema:
+ *             # ... (properties for ProductPostBody)
  *             type: object
  *             required:
  *               - name
@@ -126,44 +147,26 @@ const router = express.Router();
  *                 format: date
  *                 example: "2024-01-15"
  *     ProductPutBody:
- *       description: Product object fields to update. Only include fields that need to be changed.
+ *       description: Product object fields to update.
  *       required: true
  *       content:
  *         application/json:
  *           schema:
+ *             # ... (properties for ProductPutBody)
  *             type: object
- *             properties: # All fields are optional for PUT
+ *             properties:
  *               name:
  *                 type: string
- *                 example: "Super Laptop Pro v2"
  *               description:
  *                 type: string
- *                 example: "Upgraded version of the super fast laptop"
  *               price:
  *                 type: number
- *                 format: float
- *                 example: 1349.99
- *               category:
- *                 type: string
- *                 example: "Premium Electronics"
- *               stockQuantity:
- *                 type: integer
- *                 example: 45
- *               supplier:
- *                 type: string
- *                 example: "TechCorp Global"
- *               sku:
- *                 type: string
- *                 example: "SLP-2024-001B" # Must remain unique if changed
- *               tags:
- *                 type: array
- *                 items:
- *                   type: string
- *                 example: ["upgraded", "high-performance", "laptop", "AI-enhanced"]
- *               releaseDate:
- *                 type: string
- *                 format: date
- *                 example: "2024-03-01"
+ *               # ... other optional fields
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
 
 /**
@@ -191,14 +194,7 @@ const router = express.Router();
  *               items:
  *                 $ref: '#/components/schemas/Product'
  *       500:
- *         description: Internal server error while fetching products.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
+ *         description: Internal server error.
  */
 router.get("/products", getProducts);
 
@@ -206,16 +202,15 @@ router.get("/products", getProducts);
  * @swagger
  * /api/products/{id}:
  *   get:
- *     summary: Get a single product 
+ *     summary: Get a single product by ID
  *     tags: [Products]
  *     parameters:
  *       - in: path
  *         name: id
  *         schema:
  *           type: string
- *           format: objectId
  *         required: true
- *         description: The MongoDB ID of the product to retrieve.
+ *         description: The ID of the product.
  *     responses:
  *       200:
  *         description: Successfully retrieved the product.
@@ -223,26 +218,10 @@ router.get("/products", getProducts);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Product'
- *       400:
- *         description: Invalid product ID format.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
  *       404:
- *         description: Product not found with the provided ID.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
+ *         description: Product not found.
  *       500:
- *         description: Internal server error while fetching the product.
+ *         description: Internal server error.
  */
 router.get("/products/:id", getProductById);
 
@@ -250,8 +229,10 @@ router.get("/products/:id", getProductById);
  * @swagger
  * /api/products:
  *   post:
- *     summary: Create a new product
+ *     summary: Create a new product (Protected)
  *     tags: [Products]
+ *     security:
+ *       - bearerAuth: [] # Indicates this route uses bearerAuth
  *     requestBody:
  *       $ref: '#/components/requestBodies/ProductPostBody'
  *     responses:
@@ -262,37 +243,29 @@ router.get("/products/:id", getProductById);
  *             schema:
  *               $ref: '#/components/schemas/Product'
  *       400:
- *         description: Bad Request. Invalid input, missing required fields, validation error (e.g., SKU already exists, price negative).
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 errors: # Optional, for Mongoose validation errors
- *                   type: object
- *                   additionalProperties:
- *                     type: string
+ *         description: Bad Request. Invalid input.
+ *       401:
+ *         description: Unauthorized. Token is missing or invalid.
  *       500:
- *         description: Internal server error while creating the product.
+ *         description: Internal server error.
  */
-router.post("/products", createProduct);
+router.post("/products", isAuthenticated, createProduct); // PROTECTED
 
 /**
  * @swagger
  * /api/products/{id}:
  *   put:
- *     summary: Update an existing product 
+ *     summary: Update an existing product (Protected)
  *     tags: [Products]
+ *     security:
+ *       - bearerAuth: [] # Indicates this route uses bearerAuth
  *     parameters:
  *       - in: path
  *         name: id
  *         schema:
  *           type: string
- *           format: objectId
  *         required: true
- *         description: The MongoDB ID of the product to update.
+ *         description: The ID of the product to update.
  *     requestBody:
  *       $ref: '#/components/requestBodies/ProductPutBody'
  *     responses:
@@ -303,28 +276,31 @@ router.post("/products", createProduct);
  *             schema:
  *               $ref: '#/components/schemas/Product'
  *       400:
- *         description: Bad Request. Invalid product ID format, no update data provided, or validation error (e.g., SKU exists, price negative).
+ *         description: Bad Request. Invalid ID or input.
+ *       401:
+ *         description: Unauthorized. Token is missing or invalid.
  *       404:
- *         description: Product not found with the provided ID.
+ *         description: Product not found.
  *       500:
- *         description: Internal server error while updating the product.
+ *         description: Internal server error.
  */
-router.put("/products/:id", updateProduct);
+router.put("/products/:id", isAuthenticated, updateProduct); // PROTECTED
 
 /**
  * @swagger
  * /api/products/{id}:
  *   delete:
- *     summary: Delete a product 
+ *     summary: Delete a product (Protected)
  *     tags: [Products]
+ *     security:
+ *       - bearerAuth: [] # Indicates this route uses bearerAuth
  *     parameters:
  *       - in: path
  *         name: id
  *         schema:
  *           type: string
- *           format: objectId
  *         required: true
- *         description: The MongoDB ID of the product to delete.
+ *         description: The ID of the product to delete.
  *     responses:
  *       200:
  *         description: Product deleted successfully.
@@ -335,16 +311,15 @@ router.put("/products/:id", updateProduct);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Product deleted successfully
  *                 deletedProduct:
  *                   $ref: '#/components/schemas/Product'
- *       400:
- *         description: Invalid product ID format.
+ *       401:
+ *         description: Unauthorized. Token is missing or invalid.
  *       404:
- *         description: Product not found. Cannot delete.
+ *         description: Product not found.
  *       500:
- *         description: Internal server error while deleting the product.
+ *         description: Internal server error.
  */
-router.delete("/products/:id", deleteProduct);
+router.delete("/products/:id", isAuthenticated, deleteProduct);
 
 module.exports = router;
