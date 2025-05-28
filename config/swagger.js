@@ -63,8 +63,6 @@ const options = {
 
 const specs = swaggerJsdoc(options);
 
-// JavaScript to be injected into Swagger UI
-// This script tries to grab 'token' from URL query params on load and set it.
 const swaggerUiAuthScript = `
   <script>
     window.addEventListener('load', function() {
@@ -75,14 +73,8 @@ const swaggerUiAuthScript = `
           const token = params.get('token');
           if (token) {
             console.log('Swagger Script: Token found in URL (raw):', token);
-            // ui.preauthorizeApiKey("bearerAuth", "Bearer " + token); // OLD - was adding "Bearer "
-            ui.preauthorizeApiKey("bearerAuth", token); // NEW - provide only the raw token
-                                                        // Assuming Swagger UI itself handles adding "Bearer "
-                                                        // for 'http' scheme 'bearer' type.
-
-            // const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-            // window.history.replaceState({path: newUrl}, '', newUrl);
-            // alert('JWT Token automatically applied from URL for this session.');
+   
+            ui.preauthorizeApiKey("bearerAuth", token);
           } else {
             const storedAuth = localStorage.getItem('swaggerEditor');
             if (storedAuth) {
@@ -90,12 +82,11 @@ const swaggerUiAuthScript = `
                     const parsedAuth = JSON.parse(storedAuth);
                     if (parsedAuth && parsedAuth.auth && parsedAuth.auth.bearerAuth && parsedAuth.auth.bearerAuth.value) {
                          console.log('Swagger Script: Token found in localStorage:', parsedAuth.auth.bearerAuth.value);
-                         // Check if localStorage value already has "Bearer "
                          let localStorageToken = parsedAuth.auth.bearerAuth.value;
                          if (localStorageToken.toLowerCase().startsWith('bearer ')) {
-                            ui.preauthorizeApiKey("bearerAuth", localStorageToken); // Already has Bearer
+                            ui.preauthorizeApiKey("bearerAuth", localStorageToken); 
                          } else {
-                            ui.preauthorizeApiKey("bearerAuth", "Bearer " + localStorageToken); // Add Bearer if missing
+                            ui.preauthorizeApiKey("bearerAuth", "Bearer " + localStorageToken); 
                          }
                     }
                 } catch (e) { console.error('Error parsing stored Swagger auth:', e); }
@@ -110,35 +101,16 @@ const swaggerUiAuthScript = `
 module.exports = (app) => {
   app.use(
     '/api-docs',
-    swaggerUi.serve, // Serve Swagger UI assets
-    // Setup Swagger UI with swaggerDocument and custom options
+    swaggerUi.serve,
+
     (req, res) => {
-      // Create the HTML dynamically to inject the script
+
       const html = swaggerUi.generateHTML(specs, {
-        customCss: '.swagger-ui .topbar { display: none }', // Example: hide topbar
+        customCss: '.swagger-ui .topbar { display: none }',
         customSiteTitle: "DarthTator API Docs",
-        // Note: swaggerOptions.requestInterceptor is not directly supported in generateHTML in this way.
-        // We are injecting a script instead.
       });
-      // Inject the custom script before the closing </body> tag
+
       res.send(html.replace('</body>', swaggerUiAuthScript + '</body>'));
     }
-    // Old setup (simpler, but harder to inject complex scripts):
-    // swaggerUi.setup(specs, {
-    //   explorer: true,
-    //   // swaggerOptions: {
-    //   //   requestInterceptor: (req) => {
-    //   //     // This interceptor runs for *every* API request made from Swagger UI
-    //   //     // It's not ideal for one-time token setup from URL.
-    //   //     const params = new URLSearchParams(window.location.search);
-    //   //     const token = params.get('token');
-    //   //     if (token && !req.headers.Authorization) {
-    //   //       req.headers.Authorization = 'Bearer ' + token;
-    //   //     }
-    //   //     return req;
-    //   //   },
-    //   //   persistAuthorization: true,
-    //   // }
-    // })
   );
 };

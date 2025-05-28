@@ -1,38 +1,37 @@
-// middleware/authMiddleware.js
+
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 const dotenv = require("dotenv");
 
-dotenv.config(); // Ensure this is at the top
+dotenv.config(); 
 
 const JWT_SECRET = process.env.JWT_SECRET;
-// console.log('Verifying with JWT_SECRET (middleware top):', JWT_SECRET); // Already have this
 
 exports.isAuthenticated = async (req, res, next) => {
   let tokenToVerify;
 
   if (
     req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer ") // Ensure space after Bearer
+    req.headers.authorization.startsWith("Bearer ")
   ) {
     try {
       tokenToVerify = req.headers.authorization.split(" ")[1];
       console.log('--- Auth Middleware ---');
       console.log('Received Authorization Header:', req.headers.authorization);
       console.log('Token extracted for verification:', tokenToVerify);
-      console.log('Secret used for verification (inside isAuthenticated):', JWT_SECRET); // Re-confirm
+      console.log('Secret used for verification (inside isAuthenticated):', JWT_SECRET);
       console.log('Type of JWT_SECRET:', typeof JWT_SECRET);
       console.log('Length of JWT_SECRET:', JWT_SECRET ? JWT_SECRET.length : 'undefined');
 
 
-      if (!JWT_SECRET || typeof JWT_SECRET !== 'string' || JWT_SECRET.length < 10) { // Basic sanity check for secret
+      if (!JWT_SECRET || typeof JWT_SECRET !== 'string' || JWT_SECRET.length < 10) {
           console.error('CRITICAL: JWT_SECRET is invalid or too short in isAuthenticated!');
           return res.status(500).json({ message: "Server configuration error: JWT Secret invalid." });
       }
 
-      const decoded = jwt.verify(tokenToVerify, JWT_SECRET); // The critical line
+      const decoded = jwt.verify(tokenToVerify, JWT_SECRET);
 
-      console.log('Token successfully decoded:', decoded); // Log if successful
+      console.log('Token successfully decoded:', decoded);
 
       req.user = await User.findById(decoded.id).select("-password");
 
@@ -46,8 +45,8 @@ exports.isAuthenticated = async (req, res, next) => {
       console.error('Error during token verification:', error.name, error.message);
       console.error('Token that failed verification:', tokenToVerify);
       console.error('Secret used during failed verification:', JWT_SECRET);
-      // More specific error handling based on error.name
-      if (error.name === 'JsonWebTokenError') { // This includes 'invalid signature'
+
+      if (error.name === 'JsonWebTokenError') {
         return res.status(401).json({ message: `Not authorized, token failed (${error.message})` });
       }
       if (error.name === 'TokenExpiredError') {
@@ -61,8 +60,8 @@ exports.isAuthenticated = async (req, res, next) => {
     return res.status(401).json({ message: "Not authorized, no token or malformed header" });
   }
 
-  // This part should not be reached if a token was processed above
-  if (!tokenToVerify) { // Fallback, though the logic above should handle it
+
+  if (!tokenToVerify) {
     console.log('--- Auth Middleware ---');
     console.log('No token found after checks.');
     return res.status(401).json({ message: "Not authorized, no token provided" });

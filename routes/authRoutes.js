@@ -125,7 +125,6 @@ router.get("/profile", isAuthenticated, (req, res) => {
   res.status(200).json(req.user);
 });
 
-// Failure page within the API
 router.get("/failed", (req, res) => {
   const errorMessage = req.query.error || "Google authentication failed. Please try again.";
   res.status(401).send(`

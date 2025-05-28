@@ -37,8 +37,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      // secure: process.env.NODE_ENV === "production",
-      // httpOnly: true,
+
     },
   })
 );
@@ -49,7 +48,6 @@ app.use(passport.session());
 app.get("/", (req, res) => {
   res.setHeader("Content-Type", "text/html");
 
-  // Check for token and message from query parameters (after OAuth redirect)
   const token = req.query.token;
   const message = req.query.message;
 
@@ -57,9 +55,6 @@ app.get("/", (req, res) => {
   let profileLink = "";
   let tokenDisplay = "";
 
-  // Passport's req.isAuthenticated() checks the session
-  // For JWT based state, you'd typically rely on the client sending the token.
-  // However, since we are redirecting here, the session might still be active from the OAuth flow.
   if (req.isAuthenticated && req.isAuthenticated()) {
       authStatus = `Logged In via session as ${req.user.displayName}`;
       profileLink = `<p><a href="${API_URL}/auth/profile">View Profile (Session Based - requires login if session expires)</a></p>

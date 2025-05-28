@@ -7,7 +7,7 @@ const {
   updateProduct,
   deleteProduct
 } = require("../controllers/productController");
-const { isAuthenticated } = require("../middleware/authMiddleware"); // Import auth middleware
+const { isAuthenticated } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 /**
