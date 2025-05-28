@@ -3,7 +3,6 @@ const swaggerUi = require('swagger-ui-express');
 require('dotenv').config();
 
 const port = process.env.PORT || 5000;
-// Use API_URL from .env if available, otherwise fallback to localhost or Render URL
 const serverUrl = process.env.API_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
 
 console.log(`Swagger configured to use server URL: ${serverUrl}`);
@@ -18,29 +17,33 @@ const options = {
     },
     servers: [
       {
-        url: serverUrl, // Use the dynamically determined server URL
+        url: serverUrl,
         description: 'API Server',
       },
     ],
-    components: { // Global components definition
+    components: {
       securitySchemes: {
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'Enter JWT Bearer token **_only_**',
+          description: 'Enter JWT Bearer token. You can get one by logging in via Google and it will be displayed on the home page.',
         },
-        // If you were using session cookies for some auth:
-        // cookieAuth: {
-        //   type: 'apiKey',
-        //   in: 'cookie',
-        //   name: 'connect.sid' // Or whatever your session cookie name is
-        // }
       },
-      schemas: { // Centralized schemas (can also be defined in route files)
-        Product: { /* ... your Product schema ... */ },
-        Contact: { /* ... your Contact schema ... */ },
-        User: { // User schema for auth responses
+      schemas: {
+        Product: {
+            type: 'object',
+            properties: {
+                // ... your Product schema properties
+            }
+         },
+        Contact: {
+            type: 'object',
+            properties: {
+                // ... your Contact schema properties
+            }
+        },
+        User: {
           type: 'object',
           properties: {
             id: { type: 'string', description: 'User MongoDB ID' },
@@ -54,28 +57,81 @@ const options = {
         }
       }
     },
-    // security: [ // You can define global security, but often it's better per-route
-    //   {
-    //     bearerAuth: [] // Makes all routes require bearerAuth unless overridden
-    //   }
-    // ]
   },
-  // Path to the API docs (your route files)
-  apis: ['./routes/*.js', './app.js'], // Make sure this includes all files with Swagger annotations
+  apis: ['./routes/*.js', './app.js'],
 };
 
 const specs = swaggerJsdoc(options);
 
+// JavaScript to be injected into Swagger UI
+// This script tries to grab 'token' from URL query params on load and set it.
+const swaggerUiAuthScript = `
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() { // Delay to ensure Swagger UI is initialized
+        const ui = window.ui;
+        if (ui) {
+          const params = new URLSearchParams(window.location.search);
+          const token = params.get('token');
+          if (token) {
+            console.log('Token found in URL for Swagger:', token);
+            ui.preauthorizeApiKey("bearerAuth", "Bearer " + token); // Use "bearerAuth" which is the key of your securityScheme
+            // Optionally, remove the token from the URL after using it
+            // const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            // window.history.replaceState({path: newUrl}, '', newUrl);
+            // alert('JWT Token automatically applied from URL for this session.');
+          } else {
+            // Check localStorage for a previously stored token (from manual "Authorize")
+            const storedAuth = localStorage.getItem('swaggerEditor'); // Swagger UI often stores auth here
+            if (storedAuth) {
+                try {
+                    const parsedAuth = JSON.parse(storedAuth);
+                    if (parsedAuth && parsedAuth.auth && parsedAuth.auth.bearerAuth && parsedAuth.auth.bearerAuth.value) {
+                         console.log('Token found in localStorage for Swagger:', parsedAuth.auth.bearerAuth.value);
+                         ui.preauthorizeApiKey("bearerAuth", parsedAuth.auth.bearerAuth.value);
+                    }
+                } catch (e) { console.error('Error parsing stored Swagger auth:', e); }
+            }
+          }
+        }
+      }, 1000); // Adjust delay if needed
+    });
+  </script>
+`;
+
+
 module.exports = (app) => {
   app.use(
     '/api-docs',
-    swaggerUi.serve,
-    swaggerUi.setup(specs, {
-      explorer: true,
-      // You can also define swaggerOptions here
-      // swaggerOptions: {
-      //   persistAuthorization: true, // Persist authorization in Swagger UI
-      // }
-    })
+    swaggerUi.serve, // Serve Swagger UI assets
+    // Setup Swagger UI with swaggerDocument and custom options
+    (req, res) => {
+      // Create the HTML dynamically to inject the script
+      const html = swaggerUi.generateHTML(specs, {
+        customCss: '.swagger-ui .topbar { display: none }', // Example: hide topbar
+        customSiteTitle: "DarthTator API Docs",
+        // Note: swaggerOptions.requestInterceptor is not directly supported in generateHTML in this way.
+        // We are injecting a script instead.
+      });
+      // Inject the custom script before the closing </body> tag
+      res.send(html.replace('</body>', swaggerUiAuthScript + '</body>'));
+    }
+    // Old setup (simpler, but harder to inject complex scripts):
+    // swaggerUi.setup(specs, {
+    //   explorer: true,
+    //   // swaggerOptions: {
+    //   //   requestInterceptor: (req) => {
+    //   //     // This interceptor runs for *every* API request made from Swagger UI
+    //   //     // It's not ideal for one-time token setup from URL.
+    //   //     const params = new URLSearchParams(window.location.search);
+    //   //     const token = params.get('token');
+    //   //     if (token && !req.headers.Authorization) {
+    //   //       req.headers.Authorization = 'Bearer ' + token;
+    //   //     }
+    //   //     return req;
+    //   //   },
+    //   //   persistAuthorization: true,
+    //   // }
+    // })
   );
 };

@@ -68,7 +68,7 @@ router.get(
 
     // --- MODIFICATION START ---
     // Redirect to the API's main page (root) with the token as a query parameter.
-    res.redirect(`${API_URL}/?token=${token}&message=Login%20Successful`);
+    res.redirect(`${API_URL}/api-docs?token=${token}`);
     // You can add other query params like a success message if you want.
     // Note: The root route '/' in app.js will need to handle this token.
     // --- MODIFICATION END ---
