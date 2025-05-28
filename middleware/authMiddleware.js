@@ -6,6 +6,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
+console.log('Verifying with JWT_SECRET:', JWT_SECRET);
 
 exports.isAuthenticated = async (req, res, next) => {
   let token;

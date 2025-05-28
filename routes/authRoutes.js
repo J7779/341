@@ -60,12 +60,13 @@ router.get(
     session: false,
   }),
   (req, res) => {
+    (req, res) => {
     if (!req.user) {
       return res.redirect(`${API_URL}/auth/failed?error=authentication_failed`);
     }
-
+    console.log('Signing with JWT_SECRET:', process.env.JWT_SECRET); // DEBUG
     const token = generateToken(req.user._id);
-
+}
     // --- MODIFICATION START ---
     // Redirect to the API's main page (root) with the token as a query parameter.
     res.redirect(`${API_URL}/api-docs?token=${token}`);
