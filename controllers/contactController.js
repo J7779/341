@@ -1,19 +1,43 @@
+// controllers/contactController.js
 const Contact = require("../models/contactModel");
+const mongoose = require("mongoose"); // Import mongoose
 
 exports.getContacts = async (req, res) => {
   try {
     const contacts = await Contact.find();
-    res.json(contacts);
+    res.status(200).json(contacts);
   } catch (err) {
+    console.error("Error in getContacts:", err);
     res.status(500).json({ message: "Error fetching contacts: " + err.message });
   }
+};
+
+exports.getContactById = async (req, res) => {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid contact ID format" });
+    }
+    try {
+        const contact = await Contact.findById(id);
+        if (!contact) {
+            return res.status(404).json({ message: "Contact not found" });
+        }
+        res.status(200).json(contact);
+    } catch (err) {
+        console.error(`Error in getContactById for ID ${id}:`, err);
+        res.status(500).json({ message: "Error fetching contact: " + err.message });
+    }
 };
 
 exports.createContact = async (req, res) => {
   const { firstName, lastName, email, favoriteColor } = req.body;
 
-  if (!firstName || !lastName || !email || !favoriteColor) {
-    return res.status(400).json({ message: "Missing required fields: firstName, lastName, email, favoriteColor" });
+  // Basic validation for required fields
+  const requiredFields = { firstName, lastName, email, favoriteColor };
+  const missingFields = Object.keys(requiredFields).filter(key => !requiredFields[key]);
+  
+  if (missingFields.length > 0) {
+    return res.status(400).json({ message: `Missing required fields: ${missingFields.join(', ')}` });
   }
 
   try {
@@ -26,78 +50,71 @@ exports.createContact = async (req, res) => {
     await newContact.save();
     res.status(201).json(newContact);
   } catch (err) {
-    if (err.code === 11000) {
+    console.error("Error in createContact:", err);
+    if (err.code === 11000) { // Duplicate key error (likely email)
        return res.status(400).json({ message: "Error creating contact: Email already exists." });
     }
-    res.status(400).json({ message: "Error creating contact: " + err.message });
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(el => el.message);
+      return res.status(400).json({ message: "Validation Error", errors });
+    }
+    res.status(500).json({ message: "Error creating contact: " + err.message });
   }
 };
 
 exports.updateContact = async (req, res) => {
   const { id } = req.params;
-  const { firstName, lastName, email, favoriteColor } = req.body;
+  const updateData = req.body;
 
-  const updateData = {};
-  if (firstName !== undefined) updateData.firstName = firstName;
-  if (lastName !== undefined) updateData.lastName = lastName;
-  if (email !== undefined) updateData.email = email;
-  if (favoriteColor !== undefined) updateData.favoriteColor = favoriteColor;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid contact ID format" });
+  }
 
   if (Object.keys(updateData).length === 0) {
     return res.status(400).json({ message: "No update data provided." });
   }
+  // Remove id from updateData if present to prevent trying to update the _id field
+  if (updateData._id) delete updateData._id;
+
 
   try {
     const updatedContact = await Contact.findByIdAndUpdate(
       id,
-      updateData,
-      { new: true, runValidators: true }
+      { $set: updateData }, // Use $set to only update provided fields
+      { new: true, runValidators: true, context: 'query' }
     );
 
     if (!updatedContact) {
       return res.status(404).json({ message: "Contact not found" });
     }
-    res.json(updatedContact);
+    res.status(200).json(updatedContact);
   } catch (err) {
-     if (err.code === 11000) {
+    console.error(`Error in updateContact for ID ${id}:`, err);
+     if (err.code === 11000) { // Duplicate key error
        return res.status(400).json({ message: "Error updating contact: Email already exists for another contact." });
     }
-    if (err.kind === 'ObjectId') {
-         return res.status(400).json({ message: "Invalid ID format" });
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(el => el.message);
+      return res.status(400).json({ message: "Validation Error during update", errors });
     }
-    res.status(400).json({ message: "Error updating contact: " + err.message });
+    res.status(500).json({ message: "Error updating contact: " + err.message });
   }
 };
 
 exports.deleteContact = async (req, res) => {
   const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid contact ID format" });
+  }
   try {
     const deletedContact = await Contact.findByIdAndDelete(id);
 
     if (!deletedContact) {
-      return res.status(404).json({ message: "Contact not found" });
+      return res.status(404).json({ message: "Contact not found. Cannot delete." });
     }
-    res.json({ message: "Contact deleted successfully" });
+    res.status(200).json({ message: "Contact deleted successfully", deletedContact });
   } catch (err) {
-     if (err.kind === 'ObjectId') {
-         return res.status(400).json({ message: "Invalid ID format" });
-    }
+    console.error(`Error in deleteContact for ID ${id}:`, err);
     res.status(500).json({ message: "Error deleting contact: " + err.message });
   }
-};
-
-exports.getContactById = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const contact = await Contact.findById(id);
-        if (!contact) {
-            return res.status(404).json({ message: "Contact not found" });
-        }
-        res.json(contact);
-    } catch (err) {
-        if (err.kind === 'ObjectId') {
-             return res.status(400).json({ message: "Invalid ID format" });
-        }
-        res.status(500).json({ message: "Error fetching contact: " + err.message });
-    }
 };
