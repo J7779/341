@@ -206,7 +206,7 @@ router.get("/products", getProducts);
  * @swagger
  * /api/products/{id}:
  *   get:
- *     summary: Get a single product by its MongoDB ID
+ *     summary: Get a single product 
  *     tags: [Products]
  *     parameters:
  *       - in: path
@@ -283,7 +283,7 @@ router.post("/products", createProduct);
  * @swagger
  * /api/products/{id}:
  *   put:
- *     summary: Update an existing product by its MongoDB ID
+ *     summary: Update an existing product 
  *     tags: [Products]
  *     parameters:
  *       - in: path
@@ -315,7 +315,7 @@ router.put("/products/:id", updateProduct);
  * @swagger
  * /api/products/{id}:
  *   delete:
- *     summary: Delete a product by its MongoDB ID
+ *     summary: Delete a product 
  *     tags: [Products]
  *     parameters:
  *       - in: path
