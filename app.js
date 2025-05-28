@@ -1,10 +1,11 @@
-
+// app.js
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
-const contactRoutes = require("./routes/contactRoutes"); 
+const contactRoutes = require("./routes/contactRoutes");
+const productRoutes = require("./routes/productRoutes"); 
 const swaggerSetup = require("./config/swagger");
 
 dotenv.config();
@@ -26,6 +27,7 @@ app.get("/", (req, res) => {
 
 
 app.use("/api", contactRoutes);
+app.use("/api", productRoutes);
 
 
 swaggerSetup(app);
