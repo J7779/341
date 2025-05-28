@@ -74,31 +74,38 @@ const swaggerUiAuthScript = `
           const params = new URLSearchParams(window.location.search);
           const token = params.get('token');
           if (token) {
-            console.log('Token found in URL for Swagger:', token);
-            ui.preauthorizeApiKey("bearerAuth", "Bearer " + token); // Use "bearerAuth" which is the key of your securityScheme
-            // Optionally, remove the token from the URL after using it
+            console.log('Swagger Script: Token found in URL (raw):', token);
+            // ui.preauthorizeApiKey("bearerAuth", "Bearer " + token); // OLD - was adding "Bearer "
+            ui.preauthorizeApiKey("bearerAuth", token); // NEW - provide only the raw token
+                                                        // Assuming Swagger UI itself handles adding "Bearer "
+                                                        // for 'http' scheme 'bearer' type.
+
             // const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
             // window.history.replaceState({path: newUrl}, '', newUrl);
             // alert('JWT Token automatically applied from URL for this session.');
           } else {
-            // Check localStorage for a previously stored token (from manual "Authorize")
-            const storedAuth = localStorage.getItem('swaggerEditor'); // Swagger UI often stores auth here
+            const storedAuth = localStorage.getItem('swaggerEditor');
             if (storedAuth) {
                 try {
                     const parsedAuth = JSON.parse(storedAuth);
                     if (parsedAuth && parsedAuth.auth && parsedAuth.auth.bearerAuth && parsedAuth.auth.bearerAuth.value) {
-                         console.log('Token found in localStorage for Swagger:', parsedAuth.auth.bearerAuth.value);
-                         ui.preauthorizeApiKey("bearerAuth", parsedAuth.auth.bearerAuth.value);
+                         console.log('Swagger Script: Token found in localStorage:', parsedAuth.auth.bearerAuth.value);
+                         // Check if localStorage value already has "Bearer "
+                         let localStorageToken = parsedAuth.auth.bearerAuth.value;
+                         if (localStorageToken.toLowerCase().startsWith('bearer ')) {
+                            ui.preauthorizeApiKey("bearerAuth", localStorageToken); // Already has Bearer
+                         } else {
+                            ui.preauthorizeApiKey("bearerAuth", "Bearer " + localStorageToken); // Add Bearer if missing
+                         }
                     }
                 } catch (e) { console.error('Error parsing stored Swagger auth:', e); }
             }
           }
         }
-      }, 1000); // Adjust delay if needed
+      }, 1000);
     });
   </script>
 `;
-
 
 module.exports = (app) => {
   app.use(
