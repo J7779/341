@@ -137,7 +137,7 @@ router.post("/contacts", isAuthenticated, createContact); // Protected
  * @swagger
  * /api/contacts/{id}:
  *   put:
- *     summary: Update an existing contact
+ *     summary: Update an existing contact (Protected - assuming update also needs auth)
  *     tags: [Contacts]
  *     security:
  *       - bearerAuth: []

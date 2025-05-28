@@ -282,7 +282,7 @@ router.post("/products", isAuthenticated, createProduct); // Protected
  * @swagger
  * /api/products/{id}:
  *   put:
- *     summary: Update an existing product
+ *     summary: Update an existing product (Protected - assuming update also needs auth)
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
